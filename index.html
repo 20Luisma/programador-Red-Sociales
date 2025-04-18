@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Activadores Aleatorios</title>
+  <title>Activadores en Firebase</title>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; margin: 0; padding: 2rem; color: #333; }
     h1 { text-align: center; color: #007bff; }
@@ -21,10 +21,10 @@
   </style>
 </head>
 <body>
-  <h1>Activadores Aleatorios</h1>
+  <h1>Activadores (Firebase)</h1>
   <div class="layout">
     <div class="formulario">
-      <label for="tipo">Nombre del programador:</label>
+      <label for="nombreProgramador">Nombre del programador:</label>
       <input type="text" id="nombreProgramador" placeholder="Ej. Martín">
 
       <label for="comentario">Comentario:</label>
@@ -64,34 +64,39 @@
     </div>
   </div>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"></script>
   <script>
-    let activadores = [];
-const guardados = localStorage.getItem("activadores");
-if (guardados) {
-  activadores = JSON.parse(guardados);
-  renderizarActivadores();
-guardarEnLocalStorage();
-}
-    let editandoIndex = null;
+    const firebaseConfig = {
+      apiKey: "AIzaSyBBbRJjYhoParvH_bGMp5S1AyUYJyQl2uM",
+      authDomain: "activadores-redes-sociales.firebaseapp.com",
+      databaseURL: "https://activadores-redes-sociales-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "activadores-redes-sociales",
+      storageBucket: "activadores-redes-sociales.appspot.com",
+      messagingSenderId: "672713275674",
+      appId: "1:672713275674:web:aaaabefc805ff04c8c94a3",
+      measurementId: "G-GGKD0PL2J7"
+    };
 
-    document.getElementById("tipo").addEventListener("change", () => {
-      const tipo = document.getElementById("tipo").value;
-      document.getElementById("diasSemana").style.display = tipo === 'semanal' ? 'block' : 'none';
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const tipoSelect = document.getElementById("tipo");
+    const diasSemanaDiv = document.getElementById("diasSemana");
+    const lista = document.getElementById("listaActivadores");
+
+    tipoSelect.addEventListener("change", () => {
+      diasSemanaDiv.style.display = tipoSelect.value === 'semanal' ? 'block' : 'none';
     });
 
     document.getElementById("btnGuardar").addEventListener("click", () => {
-      const tipo = document.getElementById("tipo").value;
+      const nombre = document.getElementById("nombreProgramador").value;
+      const comentario = document.getElementById("comentario").value;
+      const tipo = tipoSelect.value;
       const inicio = document.getElementById("horaInicio").value;
       const fin = document.getElementById("horaFin").value;
       const dias = Array.from(document.querySelectorAll("#diasSemana input:checked")).map(cb => cb.value);
-
-      if (!inicio || !fin) {
-        alert("Por favor completa el rango de horas.");
-        return;
-      }
-
-      const nombre = document.getElementById("nombreProgramador").value;
-      const comentario = document.getElementById("comentario").value;
 
       const activador = {
         nombre,
@@ -100,112 +105,61 @@ guardarEnLocalStorage();
         dias,
         inicio,
         fin,
-        modo: "aleatorio",
         ultimaEjecucion: null
       };
 
-      if (editandoIndex !== null) {
-        activadores[editandoIndex] = activador;
-        editandoIndex = null;
-        document.getElementById("btnGuardar").innerText = "Agregar activador";
-      } else {
-        activadores.push(activador);
-      }
-
-      renderizarActivadores();
-      limpiarFormulario();
+      const nuevoRef = db.ref("activadores").push();
+      nuevoRef.set(activador).then(() => cargarActivadores());
     });
 
-    function renderizarActivadores() {
-      const contenedor = document.getElementById("listaActivadores");
-      contenedor.innerHTML = "";
-      activadores.forEach((a, i) => {
-        const div = document.createElement("div");
-        div.className = "activador";
-        const encabezado = document.createElement("div");
-        const tipoTexto = a.tipo === 'una' ? 'Puntual' : a.tipo.charAt(0).toUpperCase() + a.tipo.slice(1);
-        encabezado.innerHTML = `<strong>Método:</strong> ${tipoTexto}`;
-        encabezado.style.marginBottom = "0.5rem";
-        div.appendChild(encabezado);
+    function cargarActivadores() {
+      db.ref("activadores").once("value", snapshot => {
+        lista.innerHTML = "";
+        snapshot.forEach(child => {
+          const a = child.val();
+          const key = child.key;
 
-        const toggle = document.createElement("button");
-        toggle.className = "toggle-btn";
-        toggle.textContent = "▼ Mostrar/ocultar detalles";
-        toggle.onclick = () => {
-          const contenido = div.querySelector(".activador-contenido");
-          contenido.style.display = contenido.style.display === "none" ? "block" : "none";
-        };
+          const div = document.createElement("div");
+          div.className = "activador";
+          const encabezado = document.createElement("div");
+          const tipoTexto = a.tipo === 'una' ? 'Puntual' : a.tipo.charAt(0).toUpperCase() + a.tipo.slice(1);
+          encabezado.innerHTML = `<strong>Método:</strong> ${tipoTexto}`;
+          encabezado.style.marginBottom = "0.5rem";
 
-        const contenido = document.createElement("div");
-        contenido.className = "activador-contenido";
-        contenido.style.display = "none";
-        contenido.innerHTML = `
-          <strong>Nombre:</strong> ${a.nombre || 'Sin nombre'}<br>
-          <strong>Comentario:</strong> ${a.comentario || 'Sin comentario'}<br>
-          <strong>Repetición:</strong> ${a.tipo} ${a.tipo === 'semanal' ? '(' + a.dias.join(', ') + ')' : ''}<br>
-          <strong>Horario:</strong> Entre ${a.inicio} y ${a.fin}<br>
-          <strong>Modo:</strong> ${a.modo}<br>
-          ${a.ultimaEjecucion ? `<div class="log">⏰ Última ejecución: ${a.ultimaEjecucion}</div>` : '<div class="log">Aún no ejecutado</div>'}
-          <div class="acciones">
-            <button onclick="editar(${i})">✎ Editar</button>
-            <button onclick="eliminar(${i})">❌ Eliminar</button>
-          </div>
-        `;
+          const toggle = document.createElement("button");
+          toggle.className = "toggle-btn";
+          toggle.textContent = "▼ Mostrar/ocultar detalles";
+          toggle.onclick = () => {
+            contenido.style.display = contenido.style.display === "none" ? "block" : "none";
+          };
 
-        div.appendChild(toggle);
-        div.appendChild(contenido);
-        contenedor.appendChild(div);
+          const contenido = document.createElement("div");
+          contenido.className = "activador-contenido";
+          contenido.style.display = "none";
+          contenido.innerHTML = `
+            <strong>Nombre:</strong> ${a.nombre || 'Sin nombre'}<br>
+            <strong>Comentario:</strong> ${a.comentario || 'Sin comentario'}<br>
+            <strong>Horario:</strong> Entre ${a.inicio} y ${a.fin}<br>
+            <strong>Días:</strong> ${(a.dias || []).join(', ')}<br>
+            <strong>Última ejecución:</strong> ${a.ultimaEjecucion || 'Aún no ejecutado'}<br>
+            <div class="acciones">
+              <button onclick="eliminarActivador('${key}')">❌ Eliminar</button>
+            </div>
+          `;
+
+          div.appendChild(encabezado);
+          div.appendChild(toggle);
+          div.appendChild(contenido);
+          lista.appendChild(div);
+        });
       });
     }
 
-    function guardarEnLocalStorage() {
-  localStorage.setItem("activadores", JSON.stringify(activadores));
-}
-
-function limpiarFormulario() {
-      document.getElementById("horaInicio").value = "";
-      document.getElementById("horaFin").value = "";
-      document.querySelectorAll("#diasSemana input").forEach(cb => cb.checked = false);
-      document.getElementById("tipo").value = "una";
-      document.getElementById("diasSemana").style.display = 'none';
+    function eliminarActivador(id) {
+      db.ref("activadores/" + id).remove().then(() => cargarActivadores());
     }
 
-    function editar(index) {
-      const a = activadores[index];
-      document.getElementById("tipo").value = a.tipo;
-      document.getElementById("horaInicio").value = a.inicio;
-      document.getElementById("horaFin").value = a.fin;
-      document.getElementById("diasSemana").style.display = a.tipo === 'semanal' ? 'block' : 'none';
-      document.querySelectorAll("#diasSemana input").forEach(cb => cb.checked = a.dias.includes(cb.value));
-      editandoIndex = index;
-      document.getElementById("btnGuardar").innerText = "Guardar cambios";
-    }
-
-    function eliminar(index) {
-  activadores.splice(index, 1);
-  renderizarActivadores();
-  guardarEnLocalStorage();
-    }
-
-    // Simulación de ejecución diaria (esto debería estar ligado a una tarea real)
-    setInterval(() => {
-      const ahora = new Date();
-      const hoy = ahora.toLocaleDateString();
-      const hora = ahora.toTimeString().slice(0, 5);
-      activadores.forEach((a) => {
-        const ejecutarHoy = a.tipo === 'diaria' ||
-          (a.tipo === 'semanal' && a.dias.includes(ahora.toLocaleDateString('es-ES', { weekday: 'long' }).replace(/^./, m => m.toUpperCase()))) ||
-          a.tipo === 'mensual' || a.tipo === 'anual';
-        if (ejecutarHoy) {
-          a.ultimaEjecucion = `${hoy} a las ${hora}`;
-        guardarEnLocalStorage();
-        } else if (a.tipo === 'una' && !a.ultimaEjecucion) {
-          a.ultimaEjecucion = `${hoy} a las ${hora}`;
-        }
-      });
-      renderizarActivadores();
-    }, 10000); // cada 10 segundos como ejemplo
-
+    cargarActivadores();
   </script>
 </body>
 </html>
