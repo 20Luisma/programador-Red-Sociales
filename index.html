@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Programador Aleatorio</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 400px;
+      margin: auto;
+    }
+    label {
+      font-weight: bold;
+    }
+    input, button {
+      display: block;
+      margin: 10px 0;
+      padding: 8px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h2>⏰ Programador Aleatorio de Webhook</h2>
+
+  <form id="formulario">
+    <label for="horaInicio">Hora mínima</label>
+    <input type="time" id="horaInicio" required>
+
+    <label for="horaFin">Hora máxima</label>
+    <input type="time" id="horaFin" required>
+
+    <label for="webhook">Webhook URL</label>
+    <input type="url" id="webhook" required placeholder="https://hook.make.com/tu-id">
+
+    <button type="submit">Programar</button>
+  </form>
+
+  <p id="resultado"></p>
+
+  <script>
+    document.getElementById("formulario").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const horaInicio = document.getElementById("horaInicio").value;
+      const horaFin = document.getElementById("horaFin").value;
+      const webhook = document.getElementById("webhook").value;
+
+      const data = {
+        horaInicio,
+        horaFin,
+        webhook
+      };
+
+      try {
+        const response = await fetch("https://script.google.com/macros/s/AKfycbxGHBKH9uztNgxRMZdAFstQISQMlRI57TXdffBXJr6SLbxswJDXHpdPEepi8UjHPRPmcw/execS", {
+          method: "POST",
+          body: JSON.stringify(data),
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        const texto = await response.text();
+        document.getElementById("resultado").innerText = texto;
+
+      } catch (err) {
+        document.getElementById("resultado").innerText = "Error al programar. Revisá la consola.";
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
