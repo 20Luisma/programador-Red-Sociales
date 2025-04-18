@@ -65,7 +65,12 @@
       <label for="horaInicio">Hora desde:</label>
       <input type="time" id="horaInicio">
 
+      
+      <label for="webhook">URL del Webhook:</label>
+      <input type="url" id="webhook" placeholder="https://miwebhook.com/api">
+
       <label for="horaFin">Hora hasta:</label>
+    
       <input type="time" id="horaFin">
 
       <button id="btnGuardar">Agregar activador</button>
@@ -79,8 +84,8 @@
 
   <div id="toast">Activador guardado con éxito ✅</div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
   <script>
     window.addEventListener("DOMContentLoaded", function () {
       const firebaseConfig = {
@@ -118,20 +123,27 @@
           return;
         }
 
+        
+        const webhook = document.getElementById("webhook").value;
+        if (!webhook || !webhook.startsWith("http")) {
+          alert("Por favor ingresa una URL de webhook válida.");
+          return;
+        }
         const activador = {
+    
           nombre,
           comentario,
           tipo,
           dias,
           inicio,
           fin,
-          ultimaEjecucion: null
+          ultimaEjecucion: null, webhook
         };
 
         const nuevoRef = db.ref("activadores").push();
         nuevoRef.set(activador).then(() => {
           mostrarToast();
-          cargarActivadores();
+          cargarActivadores(); document.getElementById("webhook").value = "";
         });
       });
 
@@ -164,7 +176,7 @@
               <strong>Comentario:</strong> ${a.comentario || 'Sin comentario'}<br>
               <strong>Horario:</strong> Entre ${a.inicio} y ${a.fin}<br>
               <strong>Días:</strong> ${(a.dias || []).join(', ')}<br>
-              <strong>Última ejecución:</strong> ${a.ultimaEjecucion || 'Aún no ejecutado'}<br>
+              <strong>Última ejecución:</strong> ${a.ultimaEjecucion || 'Aún no ejecutado'}<br><strong>Webhook:</strong> ${a.webhook}<br>
               <div class="acciones">
                 <button onclick="eliminarActivador('${key}')">❌ Eliminar</button>
               </div>
@@ -190,7 +202,7 @@
         }, 3000);
       }
 
-      cargarActivadores();
+      cargarActivadores(); document.getElementById("webhook").value = "";
     });
   </script>
 </body>
