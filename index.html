@@ -18,6 +18,19 @@
     .log { font-size: 0.9rem; margin-top: 0.5rem; color: green; }
     .toggle-btn { background: none; color: #007bff; border: none; cursor: pointer; font-size: 0.9rem; margin-bottom: 0.5rem; }
     .activador-contenido { display: none; }
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #28a745;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
@@ -64,109 +77,121 @@
     </div>
   </div>
 
+  <div id="toast">Activador guardado con éxito ✅</div>
+
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"></script>
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBBbRJjYhoParvH_bGMp5S1AyUYJyQl2uM",
-      authDomain: "activadores-redes-sociales.firebaseapp.com",
-      databaseURL: "https://activadores-redes-sociales-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "activadores-redes-sociales",
-      storageBucket: "activadores-redes-sociales.appspot.com",
-      messagingSenderId: "672713275674",
-      appId: "1:672713275674:web:aaaabefc805ff04c8c94a3",
-      measurementId: "G-GGKD0PL2J7"
-    };
-
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    const tipoSelect = document.getElementById("tipo");
-    const diasSemanaDiv = document.getElementById("diasSemana");
-    const lista = document.getElementById("listaActivadores");
-
-    tipoSelect.addEventListener("change", () => {
-      diasSemanaDiv.style.display = tipoSelect.value === 'semanal' ? 'block' : 'none';
-    });
-
-    document.getElementById("btnGuardar").addEventListener("click", () => {
-      const nombre = document.getElementById("nombreProgramador").value;
-      const comentario = document.getElementById("comentario").value;
-      const tipo = tipoSelect.value;
-      const inicio = document.getElementById("horaInicio").value;
-      const fin = document.getElementById("horaFin").value;
-      const dias = Array.from(document.querySelectorAll("#diasSemana input:checked")).map(cb => cb.value);
-
-      if (!nombre || !comentario || !inicio || !fin) {
-        alert("Por favor completa todos los campos.");
-        return;
-      }
-
-      const activador = {
-        nombre,
-        comentario,
-        tipo,
-        dias,
-        inicio,
-        fin,
-        ultimaEjecucion: null
+    window.addEventListener("DOMContentLoaded", function () {
+      const firebaseConfig = {
+        apiKey: "AIzaSyBBbRJjYhoParvH_bGMp5S1AyUYJyQl2uM",
+        authDomain: "activadores-redes-sociales.firebaseapp.com",
+        databaseURL: "https://activadores-redes-sociales-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "activadores-redes-sociales",
+        storageBucket: "activadores-redes-sociales.appspot.com",
+        messagingSenderId: "672713275674",
+        appId: "1:672713275674:web:aaaabefc805ff04c8c94a3",
+        measurementId: "G-GGKD0PL2J7"
       };
 
-      const nuevoRef = db.ref("activadores").push();
-      nuevoRef.set(activador).then(() => {
-        alert("✅ Activador guardado con éxito.");
-        cargarActivadores();
+      const app = firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      const tipoSelect = document.getElementById("tipo");
+      const diasSemanaDiv = document.getElementById("diasSemana");
+      const lista = document.getElementById("listaActivadores");
+
+      tipoSelect.addEventListener("change", () => {
+        diasSemanaDiv.style.display = tipoSelect.value === 'semanal' ? 'block' : 'none';
       });
-    });
 
-    function cargarActivadores() {
-      db.ref("activadores").once("value", snapshot => {
-        lista.innerHTML = "";
-        snapshot.forEach(child => {
-          const a = child.val();
-          const key = child.key;
+      document.getElementById("btnGuardar").addEventListener("click", () => {
+        const nombre = document.getElementById("nombreProgramador").value;
+        const comentario = document.getElementById("comentario").value;
+        const tipo = tipoSelect.value;
+        const inicio = document.getElementById("horaInicio").value;
+        const fin = document.getElementById("horaFin").value;
+        const dias = Array.from(document.querySelectorAll("#diasSemana input:checked")).map(cb => cb.value);
 
-          const div = document.createElement("div");
-          div.className = "activador";
-          const encabezado = document.createElement("div");
-          const tipoTexto = a.tipo === 'una' ? 'Puntual' : a.tipo.charAt(0).toUpperCase() + a.tipo.slice(1);
-          encabezado.innerHTML = `<strong>Método:</strong> ${tipoTexto}`;
-          encabezado.style.marginBottom = "0.5rem";
+        if (!nombre || !comentario || !inicio || !fin) {
+          alert("Por favor completa todos los campos.");
+          return;
+        }
 
-          const toggle = document.createElement("button");
-          toggle.className = "toggle-btn";
-          toggle.textContent = "▼ Mostrar/ocultar detalles";
-          toggle.onclick = () => {
-            contenido.style.display = contenido.style.display === "none" ? "block" : "none";
-          };
+        const activador = {
+          nombre,
+          comentario,
+          tipo,
+          dias,
+          inicio,
+          fin,
+          ultimaEjecucion: null
+        };
 
-          const contenido = document.createElement("div");
-          contenido.className = "activador-contenido";
-          contenido.style.display = "none";
-          contenido.innerHTML = `
-            <strong>Nombre:</strong> ${a.nombre || 'Sin nombre'}<br>
-            <strong>Comentario:</strong> ${a.comentario || 'Sin comentario'}<br>
-            <strong>Horario:</strong> Entre ${a.inicio} y ${a.fin}<br>
-            <strong>Días:</strong> ${(a.dias || []).join(', ')}<br>
-            <strong>Última ejecución:</strong> ${a.ultimaEjecucion || 'Aún no ejecutado'}<br>
-            <div class="acciones">
-              <button onclick="eliminarActivador('${key}')">❌ Eliminar</button>
-            </div>
-          `;
-
-          div.appendChild(encabezado);
-          div.appendChild(toggle);
-          div.appendChild(contenido);
-          lista.appendChild(div);
+        const nuevoRef = db.ref("activadores").push();
+        nuevoRef.set(activador).then(() => {
+          mostrarToast();
+          cargarActivadores();
         });
       });
-    }
 
-    function eliminarActivador(id) {
-      db.ref("activadores/" + id).remove().then(() => cargarActivadores());
-    }
+      function cargarActivadores() {
+        db.ref("activadores").once("value", snapshot => {
+          lista.innerHTML = "";
+          snapshot.forEach(child => {
+            const a = child.val();
+            const key = child.key;
 
-    cargarActivadores();
+            const div = document.createElement("div");
+            div.className = "activador";
+            const encabezado = document.createElement("div");
+            const tipoTexto = a.tipo === 'una' ? 'Puntual' : a.tipo.charAt(0).toUpperCase() + a.tipo.slice(1);
+            encabezado.innerHTML = `<strong>Método:</strong> ${tipoTexto}`;
+            encabezado.style.marginBottom = "0.5rem";
+
+            const toggle = document.createElement("button");
+            toggle.className = "toggle-btn";
+            toggle.textContent = "▼ Mostrar/ocultar detalles";
+            toggle.onclick = () => {
+              contenido.style.display = contenido.style.display === "none" ? "block" : "none";
+            };
+
+            const contenido = document.createElement("div");
+            contenido.className = "activador-contenido";
+            contenido.style.display = "none";
+            contenido.innerHTML = `
+              <strong>Nombre:</strong> ${a.nombre || 'Sin nombre'}<br>
+              <strong>Comentario:</strong> ${a.comentario || 'Sin comentario'}<br>
+              <strong>Horario:</strong> Entre ${a.inicio} y ${a.fin}<br>
+              <strong>Días:</strong> ${(a.dias || []).join(', ')}<br>
+              <strong>Última ejecución:</strong> ${a.ultimaEjecucion || 'Aún no ejecutado'}<br>
+              <div class="acciones">
+                <button onclick="eliminarActivador('${key}')">❌ Eliminar</button>
+              </div>
+            `;
+
+            div.appendChild(encabezado);
+            div.appendChild(toggle);
+            div.appendChild(contenido);
+            lista.appendChild(div);
+          });
+        });
+      }
+
+      function eliminarActivador(id) {
+        db.ref("activadores/" + id).remove().then(() => cargarActivadores());
+      }
+
+      function mostrarToast() {
+        const toast = document.getElementById("toast");
+        toast.style.opacity = "1";
+        setTimeout(() => {
+          toast.style.opacity = "0";
+        }, 3000);
+      }
+
+      cargarActivadores();
+    });
   </script>
 </body>
 </html>
