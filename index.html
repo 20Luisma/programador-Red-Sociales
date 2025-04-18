@@ -144,6 +144,41 @@
         nuevoRef.set(activador).then(() => {
           mostrarToast();
           cargarActivadores(); document.getElementById("webhook").value = "";
+
+
+// Verifica y ejecuta webhooks automáticamente cada 15 segundos
+setInterval(() => {
+  const ahora = new Date();
+  const horaActual = ahora.toTimeString().slice(0,5);
+  const diaSemana = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
+
+  db.ref("activadores").once("value", snapshot => {
+    snapshot.forEach(child => {
+      const a = child.val();
+      const key = child.key;
+      const dentroHorario = a.inicio <= horaActual && horaActual <= a.fin;
+
+      let ejecutar = false;
+      if (a.tipo === 'diaria' && dentroHorario) ejecutar = true;
+      if (a.tipo === 'semanal' && dentroHorario && a.dias.includes(diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1))) ejecutar = true;
+      if (a.tipo === 'una' && !a.ultimaEjecucion && dentroHorario) ejecutar = true;
+
+      if (ejecutar) {
+        fetch(a.webhook)
+          .then(() => {
+            db.ref("activadores/" + key).update({
+              ultimaEjecucion: new Date().toLocaleString()
+            });
+            cargarActivadores();
+          })
+          .catch(() => {
+            console.error("Error al ejecutar webhook");
+          });
+      }
+    });
+  });
+}, 15000);
+
         });
       });
 
@@ -203,6 +238,41 @@
       }
 
       cargarActivadores(); document.getElementById("webhook").value = "";
+
+
+// Verifica y ejecuta webhooks automáticamente cada 15 segundos
+setInterval(() => {
+  const ahora = new Date();
+  const horaActual = ahora.toTimeString().slice(0,5);
+  const diaSemana = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
+
+  db.ref("activadores").once("value", snapshot => {
+    snapshot.forEach(child => {
+      const a = child.val();
+      const key = child.key;
+      const dentroHorario = a.inicio <= horaActual && horaActual <= a.fin;
+
+      let ejecutar = false;
+      if (a.tipo === 'diaria' && dentroHorario) ejecutar = true;
+      if (a.tipo === 'semanal' && dentroHorario && a.dias.includes(diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1))) ejecutar = true;
+      if (a.tipo === 'una' && !a.ultimaEjecucion && dentroHorario) ejecutar = true;
+
+      if (ejecutar) {
+        fetch(a.webhook)
+          .then(() => {
+            db.ref("activadores/" + key).update({
+              ultimaEjecucion: new Date().toLocaleString()
+            });
+            cargarActivadores();
+          })
+          .catch(() => {
+            console.error("Error al ejecutar webhook");
+          });
+      }
+    });
+  });
+}, 15000);
+
     });
   </script>
 </body>
