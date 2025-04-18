@@ -2,74 +2,210 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Programador Aleatorio de Webhook</title>
+  <title>Activadores Aleatorios</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      max-width: 400px;
-      margin: auto;
-    }
-    label {
-      font-weight: bold;
-    }
-    input, button {
-      display: block;
-      margin: 10px 0;
-      padding: 8px;
-      width: 100%;
-    }
-    p {
-      font-size: 14px;
-      color: red;
-    }
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; margin: 0; padding: 2rem; color: #333; }
+    h1 { text-align: center; color: #007bff; }
+    .layout { display: flex; flex-wrap: wrap; max-width: 1000px; margin: 2rem auto; gap: 2rem; }
+    .formulario, .activadores { flex: 1; background: #fff; padding: 1.5rem; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+    label { font-weight: 600; margin-top: 1rem; display: block; }
+    input, select, button { width: 100%; margin-top: 0.5rem; margin-bottom: 1rem; padding: 0.6rem; border-radius: 6px; border: 1px solid #ccc; font-size: 1rem; }
+    .dias-semana label { display: inline-block; width: auto; margin-right: 10px; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .activador { background: #e9f5ff; border-left: 4px solid #007bff; margin-bottom: 1rem; padding: 1rem; border-radius: 8px; }
+    .acciones button { background: transparent; color: #007bff; margin-left: 10px; }
+    .log { font-size: 0.9rem; margin-top: 0.5rem; color: green; }
+    .toggle-btn { background: none; color: #007bff; border: none; cursor: pointer; font-size: 0.9rem; margin-bottom: 0.5rem; }
+    .activador-contenido { display: none; }
   </style>
 </head>
 <body>
-  <h2>⏰ Programador Aleatorio de Webhook</h2>
+  <h1>Activadores Aleatorios</h1>
+  <div class="layout">
+    <div class="formulario">
+      <label for="tipo">Nombre del programador:</label>
+      <input type="text" id="nombreProgramador" placeholder="Ej. Martín">
 
-  <form id="formulario">
-    <label for="horaInicio">Hora mínima</label>
-    <input type="time" id="horaInicio" required>
+      <label for="comentario">Comentario:</label>
+      <input type="text" id="comentario" placeholder="Ej. Publicación en redes sociales">
 
-    <label for="horaFin">Hora máxima</label>
-    <input type="time" id="horaFin" required>
+      <label for="tipo">Método:</label>
+      <select id="tipo">
+        <option value="una">Puntual</option>
+        <option value="diaria">Diaria</option>
+        <option value="semanal">Semanal</option>
+        <option value="mensual">Mensual</option>
+        <option value="anual">Anual</option>
+      </select>
 
-    <button type="submit">Programar</button>
-  </form>
+      <div id="diasSemana" class="dias-semana" style="display:none;">
+        <label><input type="checkbox" value="Lunes">Lunes</label>
+        <label><input type="checkbox" value="Martes">Martes</label>
+        <label><input type="checkbox" value="Miércoles">Miércoles</label>
+        <label><input type="checkbox" value="Jueves">Jueves</label>
+        <label><input type="checkbox" value="Viernes">Viernes</label>
+        <label><input type="checkbox" value="Sábado">Sábado</label>
+        <label><input type="checkbox" value="Domingo">Domingo</label>
+      </div>
 
-  <p id="resultado"></p>
+      <label for="horaInicio">Hora desde:</label>
+      <input type="time" id="horaInicio">
+
+      <label for="horaFin">Hora hasta:</label>
+      <input type="time" id="horaFin">
+
+      <button id="btnGuardar">Agregar activador</button>
+    </div>
+
+    <div class="activadores">
+      <h2>Lista de Activadores</h2>
+      <div id="listaActivadores"></div>
+    </div>
+  </div>
 
   <script>
-    document.getElementById("formulario").addEventListener("submit", async function(e) {
-      e.preventDefault();
+    let activadores = [];
+const guardados = localStorage.getItem("activadores");
+if (guardados) {
+  activadores = JSON.parse(guardados);
+  renderizarActivadores();
+guardarEnLocalStorage();
+}
+    let editandoIndex = null;
 
-      const horaInicio = document.getElementById("horaInicio").value;
-      const horaFin = document.getElementById("horaFin").value;
+    document.getElementById("tipo").addEventListener("change", () => {
+      const tipo = document.getElementById("tipo").value;
+      document.getElementById("diasSemana").style.display = tipo === 'semanal' ? 'block' : 'none';
+    });
 
-      const data = {
-        horaInicio,
-        horaFin
+    document.getElementById("btnGuardar").addEventListener("click", () => {
+      const tipo = document.getElementById("tipo").value;
+      const inicio = document.getElementById("horaInicio").value;
+      const fin = document.getElementById("horaFin").value;
+      const dias = Array.from(document.querySelectorAll("#diasSemana input:checked")).map(cb => cb.value);
+
+      if (!inicio || !fin) {
+        alert("Por favor completa el rango de horas.");
+        return;
+      }
+
+      const nombre = document.getElementById("nombreProgramador").value;
+      const comentario = document.getElementById("comentario").value;
+
+      const activador = {
+        nombre,
+        comentario,
+        tipo,
+        dias,
+        inicio,
+        fin,
+        modo: "aleatorio",
+        ultimaEjecucion: null
       };
 
-      try {
-        const response = await fetch("https://script.google.com/macros/s/AKfycbycNmZjwTCYkqp-TH31-wtOS2vnKTmvslN09xiSi5yrDush--9SYOlvCK8UYwbuwZ0W5w/exec", {
-          method: "POST",
-          body: JSON.stringify(data),
-          headers: {
-            "Content-Type": "application/json"
-          }
-        });
-
-        const texto = await response.text();
-        document.getElementById("resultado").innerText = texto;
-      } catch (err) {
-        document.getElementById("resultado").innerText = "Error al programar. Revisá la consola.";
-        console.error(err);
+      if (editandoIndex !== null) {
+        activadores[editandoIndex] = activador;
+        editandoIndex = null;
+        document.getElementById("btnGuardar").innerText = "Agregar activador";
+      } else {
+        activadores.push(activador);
       }
+
+      renderizarActivadores();
+      limpiarFormulario();
     });
+
+    function renderizarActivadores() {
+      const contenedor = document.getElementById("listaActivadores");
+      contenedor.innerHTML = "";
+      activadores.forEach((a, i) => {
+        const div = document.createElement("div");
+        div.className = "activador";
+        const encabezado = document.createElement("div");
+        const tipoTexto = a.tipo === 'una' ? 'Puntual' : a.tipo.charAt(0).toUpperCase() + a.tipo.slice(1);
+        encabezado.innerHTML = `<strong>Método:</strong> ${tipoTexto}`;
+        encabezado.style.marginBottom = "0.5rem";
+        div.appendChild(encabezado);
+
+        const toggle = document.createElement("button");
+        toggle.className = "toggle-btn";
+        toggle.textContent = "▼ Mostrar/ocultar detalles";
+        toggle.onclick = () => {
+          const contenido = div.querySelector(".activador-contenido");
+          contenido.style.display = contenido.style.display === "none" ? "block" : "none";
+        };
+
+        const contenido = document.createElement("div");
+        contenido.className = "activador-contenido";
+        contenido.style.display = "none";
+        contenido.innerHTML = `
+          <strong>Nombre:</strong> ${a.nombre || 'Sin nombre'}<br>
+          <strong>Comentario:</strong> ${a.comentario || 'Sin comentario'}<br>
+          <strong>Repetición:</strong> ${a.tipo} ${a.tipo === 'semanal' ? '(' + a.dias.join(', ') + ')' : ''}<br>
+          <strong>Horario:</strong> Entre ${a.inicio} y ${a.fin}<br>
+          <strong>Modo:</strong> ${a.modo}<br>
+          ${a.ultimaEjecucion ? `<div class="log">⏰ Última ejecución: ${a.ultimaEjecucion}</div>` : '<div class="log">Aún no ejecutado</div>'}
+          <div class="acciones">
+            <button onclick="editar(${i})">✎ Editar</button>
+            <button onclick="eliminar(${i})">❌ Eliminar</button>
+          </div>
+        `;
+
+        div.appendChild(toggle);
+        div.appendChild(contenido);
+        contenedor.appendChild(div);
+      });
+    }
+
+    function guardarEnLocalStorage() {
+  localStorage.setItem("activadores", JSON.stringify(activadores));
+}
+
+function limpiarFormulario() {
+      document.getElementById("horaInicio").value = "";
+      document.getElementById("horaFin").value = "";
+      document.querySelectorAll("#diasSemana input").forEach(cb => cb.checked = false);
+      document.getElementById("tipo").value = "una";
+      document.getElementById("diasSemana").style.display = 'none';
+    }
+
+    function editar(index) {
+      const a = activadores[index];
+      document.getElementById("tipo").value = a.tipo;
+      document.getElementById("horaInicio").value = a.inicio;
+      document.getElementById("horaFin").value = a.fin;
+      document.getElementById("diasSemana").style.display = a.tipo === 'semanal' ? 'block' : 'none';
+      document.querySelectorAll("#diasSemana input").forEach(cb => cb.checked = a.dias.includes(cb.value));
+      editandoIndex = index;
+      document.getElementById("btnGuardar").innerText = "Guardar cambios";
+    }
+
+    function eliminar(index) {
+  activadores.splice(index, 1);
+  renderizarActivadores();
+  guardarEnLocalStorage();
+    }
+
+    // Simulación de ejecución diaria (esto debería estar ligado a una tarea real)
+    setInterval(() => {
+      const ahora = new Date();
+      const hoy = ahora.toLocaleDateString();
+      const hora = ahora.toTimeString().slice(0, 5);
+      activadores.forEach((a) => {
+        const ejecutarHoy = a.tipo === 'diaria' ||
+          (a.tipo === 'semanal' && a.dias.includes(ahora.toLocaleDateString('es-ES', { weekday: 'long' }).replace(/^./, m => m.toUpperCase()))) ||
+          a.tipo === 'mensual' || a.tipo === 'anual';
+        if (ejecutarHoy) {
+          a.ultimaEjecucion = `${hoy} a las ${hora}`;
+        guardarEnLocalStorage();
+        } else if (a.tipo === 'una' && !a.ultimaEjecucion) {
+          a.ultimaEjecucion = `${hoy} a las ${hora}`;
+        }
+      });
+      renderizarActivadores();
+    }, 10000); // cada 10 segundos como ejemplo
+
   </script>
 </body>
 </html>
-
