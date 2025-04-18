@@ -54,7 +54,8 @@
       };
 
       try {
-        const response = await fetch("https://script.google.com/macros/s/AKfycbyHnYURW1FmROMWnOVgnsvzj4YzpAAKP3KIj538B-NV0DhrUmF-tYDvqEPQ859I_8567w/exec", {  // URL de Google Apps Script
+        // Enviar los datos a Apps Script
+        const response = await fetch("https://script.google.com/macros/s/AKfycbyHnYURW1FmROMWnOVgnsvzj4YzpAAKP3KIj538B-NV0DhrUmF-tYDvqEPQ859I_8567w/exec", {
           method: "POST",
           body: JSON.stringify(data),
           headers: {
@@ -62,6 +63,7 @@
           }
         });
 
+        // Mostrar la respuesta del servidor (Mensaje de éxito)
         const texto = await response.text();
         document.getElementById("resultado").innerText = texto;
 
@@ -73,4 +75,5 @@
   </script>
 </body>
 </html>
+
 
