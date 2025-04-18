@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Programador Aleatorio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Programador Aleatorio de Webhook</title>
   <style>
     body {
       font-family: sans-serif;
@@ -19,6 +20,10 @@
       padding: 8px;
       width: 100%;
     }
+    p {
+      font-size: 14px;
+      color: red;
+    }
   </style>
 </head>
 <body>
@@ -31,9 +36,6 @@
     <label for="horaFin">Hora máxima</label>
     <input type="time" id="horaFin" required>
 
-    <label for="webhook">Webhook URL</label>
-    <input type="url" id="webhook" required placeholder="https://hook.make.com/tu-id">
-
     <button type="submit">Programar</button>
   </form>
 
@@ -45,17 +47,14 @@
 
       const horaInicio = document.getElementById("horaInicio").value;
       const horaFin = document.getElementById("horaFin").value;
-      const webhook = document.getElementById("webhook").value;
 
       const data = {
         horaInicio,
-        horaFin,
-        webhook
+        horaFin
       };
 
       try {
-        // URL de tu Web App de Google Apps Script
-        const response = await fetch("https://script.google.com/macros/s/AKfycbxGHBKH9uztNgxRMZdAFstQISQMlRI57TXdffBXJr6SLbxswJDXHpdPEepi8UjHPRPmcw/exec", {
+        const response = await fetch("https://script.google.com/macros/s/AKfycbyHnYURW1FmROMWnOVgnsvzj4YzpAAKP3KIj538B-NV0DhrUmF-tYDvqEPQ859I_8567w/exec", {  // URL de Google Apps Script
           method: "POST",
           body: JSON.stringify(data),
           headers: {
@@ -74,5 +73,3 @@
   </script>
 </body>
 </html>
-
-
