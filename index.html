@@ -98,6 +98,11 @@
       const fin = document.getElementById("horaFin").value;
       const dias = Array.from(document.querySelectorAll("#diasSemana input:checked")).map(cb => cb.value);
 
+      if (!nombre || !comentario || !inicio || !fin) {
+        alert("Por favor completa todos los campos.");
+        return;
+      }
+
       const activador = {
         nombre,
         comentario,
